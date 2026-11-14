@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emma the Doggo - 2D Jump & Run</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐶</text></svg>">
+</head>
+<body>
+
+<div id="gameContainer">
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+    <!-- In-Game HUD -->
+    <div id="hud" class="hidden">
+        <div class="hud-left">
+            <div class="emma-hud-avatar">
+                <img src="emma.jpg" alt="Emma avatar">
+            </div>
+            <div id="hudHearts">❤️❤️❤️</div>
+        </div>
+
+        <div class="hud-center">
+            <div class="progress-track">
+                <div id="hudProgressBar"></div>
+            </div>
+            <span class="goal-flag">🏁 Ziel</span>
+        </div>
+
+        <div class="hud-right">
+            <div class="hud-pill" id="hudBones">🦴 0 / 28</div>
+            <div class="hud-pill" id="hudScore">Punkte: 0</div>
+            <button class="hud-btn" id="btnMute">🔊 Ton</button>
+            <button class="hud-btn" id="btnPause">⏸️</button>
+        </div>
+    </div>
+
+    <!-- Super Treat Bar (Golden Bone mode) -->
+    <div id="hudSuperBar">
+        <div class="fill"></div>
+    </div>
+
+    <!-- Dynamic Level Notification Banner -->
+    <div id="levelBanner" class="hidden"></div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="touchControls">
+        <div class="touch-cluster-left">
+            <button class="touch-btn" id="touchLeft">◀</button>
+            <button class="touch-btn" id="touchRight">▶</button>
+        </div>
+        <div class="touch-cluster-right">
+            <button class="touch-btn" id="touchJump">▲</button>
+            <button class="touch-btn touch-bark" id="touchBark">WUFF!</button>
+        </div>
+    </div>
+
+    <!-- START SCREEN OVERLAY -->
+    <div id="startScreen" class="overlay">
+        <div class="card title-card">
+            <div class="banner-img-container">
+                <img src="banner.jpg" alt="Emma the Doggo Banner" onerror="this.src='emma.jpg'">
+            </div>
+            <h1 class="game-title">Emma the Doggo 🐶</h1>
+            <p class="game-tagline">Das fröhliche 2D-Hundeabenteuer durch Park, Stadt und Wiese!</p>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnStart">
+                    <span>🐾 SPIEL STARTEN</span>
+                </button>
+                <div class="btn-row">
+                    <button class="btn btn-secondary" id="btnHowTo">
+                        <span>📖 Anleitung</span>
+                    </button>
+                    <button class="btn btn-accent" id="btnMeetEmma">
+                        <span>📸 Triff Emma</span>
+                    </button>
+                </div>
+                <div style="margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                    <p style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 6px;">Level direkt wählen:</p>
+                    <div class="btn-row">
+                        <button class="btn btn-secondary btn-lvl" data-level="0" style="padding: 8px 8px; font-size: 13px;">1. Park 🌳</button>
+                        <button class="btn btn-secondary btn-lvl" data-level="1" style="padding: 8px 8px; font-size: 13px;">2. Vorstadt 🏙️</button>
+                        <button class="btn btn-secondary btn-lvl" data-level="2" style="padding: 8px 8px; font-size: 13px;">3. Paradies 🏆</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOW TO PLAY MODAL -->
+    <div id="modalHowTo" class="overlay hidden">
+        <div class="card">
+            <h2>📖 Wie man spielt</h2>
+            <p style="color: #64748b; margin-top: 4px;">Steuere Emma sicher ans Ziel!</p>
+
+            <div class="controls-grid">
+                <div class="control-item">
+                    <span class="key-badge">A</span> <span class="key-badge">D</span> oder <span class="key-badge">◀</span> <span class="key-badge">▶</span>
+                    <div>Laufen (Links / Rechts)</div>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">W</span> <span class="key-badge">▲</span> oder <span class="key-badge">Leertaste</span>
+                    <div>Springen & Doppel-Sprung</div>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">E</span> <span class="key-badge">X</span> oder <span class="key-badge">Klick</span>
+                    <div><strong>Bellen ("WUFF!"):</strong> Beseitigt Gegner mit Schallwellen!</div>
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">🦴</span> Knochen & Würstchen
+                    <div>Sammeln für Punkte, Super-Modus & neue Herzen</div>
+                </div>
+            </div>
+
+            <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
+                💡 <strong>Tipp:</strong> Auf dem Smartphone oder Tablet kannst du die Buttons auf dem Bildschirm antippen!
+            </p>
+
+            <button class="btn btn-primary" id="btnCloseHowTo" style="width: 100%;">Alles klar, los geht's!</button>
+        </div>
+    </div>
+
+    <!-- MEET EMMA MODAL -->
+    <div id="modalEmma" class="overlay hidden">
+        <div class="card">
+            <h2>🐾 Das ist Emma!</h2>
+            <div class="polaroid-frame">
+                <img src="emma.jpg" alt="Die echte Emma">
+                <div class="polaroid-caption">Emma – Der treueste & fröhlichste Doggo! ❤️</div>
+            </div>
+
+            <div class="emma-bio">
+                <p><strong>Rasse:</strong> Kleiner Münsterländer / Spaniel Mix</p>
+                <p><strong>Besondere Merkmale:</strong> Schokobrauner Kopf, seidige Schlappohren, weiße Tupfen & ein leuchtendes pinkfarbenes Halsband!</p>
+                <p><strong>Lieblingsbeschäftigung:</strong> Knochen naschen, Vögel beobachten und mit einem fröhlichen <em>"WUFF!"</em> durch den Park sausen.</p>
+            </div>
+
+            <button class="btn btn-secondary" id="btnCloseEmma" style="width: 100%;">Zurück zum Menü</button>
+        </div>
+    </div>
+
+    <!-- PAUSE MODAL -->
+    <div id="modalPause" class="overlay hidden">
+        <div class="card">
+            <h2>⏸️ Spiel Pausiert</h2>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnResume">Weiter spielen</button>
+                <button class="btn btn-secondary" id="btnRestart">Level neustarten</button>
+                <div style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+                    <p style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 6px;">Level wechseln:</p>
+                    <div class="btn-row">
+                        <button class="btn btn-secondary btn-lvl" data-level="0" style="padding: 8px 8px; font-size: 13px;">Level 1 🌳</button>
+                        <button class="btn btn-secondary btn-lvl" data-level="1" style="padding: 8px 8px; font-size: 13px;">Level 2 🏙️</button>
+                        <button class="btn btn-secondary btn-lvl" data-level="2" style="padding: 8px 8px; font-size: 13px;">Level 3 🏆</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEVEL CLEAR MODAL -->
+    <div id="modalLevelClear" class="overlay hidden">
+        <div class="card">
+            <h2 id="clearTitle">🎉 Level Geschafft!</h2>
+            <div id="clearStars"></div>
+            <div class="stats-box" id="clearStats"></div>
+            <button class="btn btn-primary" id="btnNextLevel" style="width: 100%;">Nächstes Level ➔</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="modalGameOver" class="overlay hidden">
+        <div class="card">
+            <h2>🐶 Oh nein!</h2>
+            <p style="color: #64748b; margin: 10px 0;">Emma braucht eine kleine Pause. Aber kein Problem!</p>
+            <p style="font-size: 15px; color: #475569; margin-bottom: 20px;">
+                💡 Vergiss nicht zu bellen (<span class="key-badge">E</span> / <span class="key-badge">Klick</span>), um Katzen und Staubsauger wegzupusten!
+            </p>
+            <button class="btn btn-primary" id="btnRetry" style="width: 100%;">🔄 Noch einmal versuchen</button>
+        </div>
+    </div>
+
+    <!-- ALL LEVELS VICTORY MODAL -->
+    <div id="modalVictory" class="overlay hidden">
+        <div class="card">
+            <h2>🏆 GLÜCKWUNSCH! 🏆</h2>
+            <p style="font-size: 20px; color: #ff2d78; font-weight: 800; margin: 8px 0;">
+                Emma hat alle Level gemeistert!
+            </p>
+            <div class="polaroid-frame" style="max-width: 280px; margin: 12px auto;">
+                <img src="emma.jpg" alt="Emma Champion">
+                <div class="polaroid-caption">Der größte Champion-Doggo aller Zeiten! 👑</div>
+            </div>
+            <div class="stats-box" id="victoryStats"></div>
+            <button class="btn btn-primary" id="btnVictoryRestart" style="width: 100%;">Erneut von vorne spielen 🐾</button>
+        </div>
+    </div>
+</div>
+
+<!-- Audio assets -->
+<audio id="barkAudio" src="dog_bark.ogg" preload="auto"></audio>
+
+<!-- Game Engine Scripts -->
+<script src="bark_data.js"></script>
+<script src="audio.js"></script>
+<script src="sprites.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

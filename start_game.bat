@@ -1,0 +1,3 @@
+@echo off
+echo Starte Emma the Doggo...
+start "" "%~dp0index.html"
