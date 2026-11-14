@@ -28,5 +28,5 @@ jobs:
           port: ${{ secrets.FTP_PORT || 5544 }}
           local_path: './dist/*'
           remote_path: ${{ secrets.FTP_SERVER_DIR || './' }}
-          protocol: ftps
+          sftp_only: true
           sftpArgs: '-o ConnectTimeout=20 -o StrictHostKeyChecking=no -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedKeyTypes=+ssh-rsa'
