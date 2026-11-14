@@ -1,5 +1,7 @@
 # 🐶 Emma the Doggo – 2D Plattformer Abenteuer
 
+[![Deploy to FTP](https://github.com/Aklabeth/emma_the_game/actions/workflows/ftp-deploy.yml/badge.svg)](https://github.com/Aklabeth/emma_the_game/actions/workflows/ftp-deploy.yml)
+
 Ein liebevoll gestaltetes 2D-Jump-&-Run Spiel mit **Emma** in der Hauptrolle!
 
 ---
