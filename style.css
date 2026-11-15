@@ -12,6 +12,10 @@
     --bg-dark: #1e293b;
     --card-bg: rgba(255, 255, 255, 0.96);
     --text-main: #2c3e50;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
 }
 
 * {
@@ -20,7 +24,18 @@
     padding: 0;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    height: -webkit-fill-available;
+    overflow: hidden;
+    position: fixed;
+    touch-action: none;
 }
 
 body {
@@ -28,19 +43,20 @@ body {
     background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
     color: #fff;
     font-family: 'Fredoka', 'Nunito', sans-serif;
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    -webkit-text-size-adjust: 100%;
 }
 
 /* Main Screen Wrapper */
 #gameContainer {
     position: relative;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
+    height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
     max-width: 1200px;
     max-height: 675px;
     display: flex;
@@ -66,7 +82,10 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    padding: 14px 20px;
+    padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
+    padding-bottom: 12px;
+    padding-left: max(16px, calc(env(safe-area-inset-left, 0px) + 12px));
+    padding-right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -463,19 +482,22 @@ body {
 /* Mobile Touch Controls */
 #touchControls {
     position: absolute;
-    bottom: 20px;
+    /* Elevate controls safely above iPhone Home Bar and Safari bottom bar */
+    bottom: max(32px, calc(env(safe-area-inset-bottom, 0px) + 26px));
     left: 0;
     width: 100%;
-    padding: 0 24px;
+    padding-left: max(24px, calc(env(safe-area-inset-left, 0px) + 18px));
+    padding-right: max(24px, calc(env(safe-area-inset-right, 0px) + 18px));
     display: flex;
     justify-content: space-between;
     pointer-events: none;
-    z-index: 15;
+    z-index: 25;
+    touch-action: none;
 }
 
-/* Hide on desktop with fine mouse, visible on mobile/tablets/touch */
+/* Hide on desktop with fine mouse unless on touch device */
 @media (hover: hover) and (pointer: fine) and (min-width: 900px) {
-    #touchControls {
+    body:not(.has-touch) #touchControls {
         display: none;
     }
 }
@@ -483,55 +505,153 @@ body {
 .touch-cluster-left,
 .touch-cluster-right {
     display: flex;
-    gap: 14px;
+    gap: 16px;
     pointer-events: auto;
+    touch-action: none;
 }
 
 .touch-btn {
-    width: 68px;
-    height: 68px;
+    width: 66px;
+    height: 66px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.32);
     backdrop-filter: blur(8px);
-    border: 3px solid rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(8px);
+    border: 3px solid rgba(255, 255, 255, 0.75);
     color: #fff;
     font-size: 26px;
+    font-family: inherit;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    position: relative;
+    transition: transform 0.08s ease, background 0.08s ease;
 }
 
-.touch-btn:active {
-    background: rgba(255, 255, 255, 0.55);
+/* Expanded invisible tap target for easy hit */
+.touch-btn::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    bottom: -12px;
+    left: -12px;
+    right: -12px;
+    border-radius: 50%;
+}
+
+.touch-btn:active, .touch-btn.active {
+    background: rgba(255, 255, 255, 0.65);
     transform: scale(0.92);
 }
 
 .touch-bark {
-    background: rgba(255, 45, 120, 0.45);
+    background: rgba(255, 45, 120, 0.55);
     border-color: #ff2d78;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 900;
+    letter-spacing: 0.5px;
 }
 
-.touch-bark:active {
-    background: rgba(255, 45, 120, 0.85);
+.touch-bark:active, .touch-bark.active {
+    background: rgba(255, 45, 120, 0.9);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .touch-btn {
-        width: 56px;
-        height: 56px;
-        font-size: 20px;
+/* Portrait orientation on mobile devices (e.g. iPhone held vertically) */
+@media (orientation: portrait) and (max-width: 768px) {
+    #touchControls {
+        /* In portrait, raise the buttons so they sit directly below the centered canvas */
+        bottom: max(60px, calc(env(safe-area-inset-bottom, 0px) + 52px));
+        padding-left: 20px;
+        padding-right: 20px;
     }
+    .touch-btn {
+        width: 68px;
+        height: 68px;
+        font-size: 26px;
+    }
+    .touch-cluster-left,
+    .touch-cluster-right {
+        gap: 14px;
+    }
+}
+
+/* Landscape orientation on mobile devices (e.g. iPhone held horizontally) */
+@media (orientation: landscape) and (max-height: 550px) {
+    #touchControls {
+        /* Keep comfortable margin from bottom home bar and side notch/island */
+        bottom: max(18px, calc(env(safe-area-inset-bottom, 0px) + 14px));
+        padding-left: max(24px, calc(env(safe-area-inset-left, 0px) + 16px));
+        padding-right: max(24px, calc(env(safe-area-inset-right, 0px) + 16px));
+    }
+    .touch-btn {
+        width: 58px;
+        height: 58px;
+        font-size: 22px;
+    }
+    .touch-bark {
+        font-size: 15px;
+    }
+    .touch-cluster-left,
+    .touch-cluster-right {
+        gap: 12px;
+    }
+}
+
+/* General responsive adjustments */
+@media (max-width: 900px), (max-height: 600px) {
+    #gameContainer {
+        border-radius: 0;
+        box-shadow: none;
+        max-width: 100vw;
+        max-height: 100dvh;
+    }
+}
+
+@media (max-width: 768px) {
     .hud-left, .hud-pill {
-        padding: 6px 12px;
-        font-size: 14px;
+        padding: 5px 10px;
+        font-size: 13px;
+    }
+    .hud-right {
+        gap: 6px;
     }
     .progress-track {
-        width: 120px;
+        width: 90px;
+    }
+    #hudScore {
+        display: none;
+    }
+}
+
+@media (max-height: 500px) {
+    .title-card {
+        padding: 10px 14px;
+        max-width: 480px;
+    }
+    .banner-img-container {
+        max-width: 260px;
+        margin-bottom: 6px;
+    }
+    .game-title {
+        font-size: 22px;
+        margin-bottom: 2px;
+    }
+    .game-tagline {
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+    .btn {
+        padding: 8px 16px;
+        font-size: 15px;
+    }
+    .btn-group {
+        gap: 8px;
+        margin-top: 8px;
     }
 }

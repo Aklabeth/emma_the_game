@@ -89,8 +89,28 @@ class Game {
     }
 
     init() {
+        // Detect touch capability
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.body.classList.add('has-touch');
+        }
+
+        // Prevent iOS Safari bounce / rubber-band scrolling during gameplay
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.closest('.card')) return; // Allow scroll inside modals
+            e.preventDefault();
+        }, { passive: false });
+
+        // Prevent pinch-to-zoom on iOS Safari
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
+        document.addEventListener('gesturechange', (e) => e.preventDefault());
+        document.addEventListener('gestureend', (e) => e.preventDefault());
+
         this.handleResize();
         window.addEventListener('resize', () => this.handleResize());
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => this.handleResize(), 150);
+            setTimeout(() => this.handleResize(), 350);
+        });
 
         this.setupKeyboard();
         this.setupTouchControls();
@@ -101,10 +121,14 @@ class Game {
     }
 
     handleResize() {
+        // Set dynamic --vh custom property for iOS Safari address bar changes
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+
         // High DPI responsive canvas setup
         const container = document.getElementById('gameContainer');
-        const contW = container.clientWidth;
-        const contH = container.clientHeight;
+        const contW = container.clientWidth || window.innerWidth;
+        const contH = container.clientHeight || window.innerHeight;
 
         const scale = Math.min(contW / this.baseWidth, contH / this.baseHeight);
         const displayW = Math.round(this.baseWidth * scale);
@@ -212,13 +236,70 @@ class Game {
         if (!btnLeft) return;
 
         const bindTouch = (elem, pressFn, releaseFn) => {
-            const start = (e) => { e.preventDefault(); pressFn(); };
-            const end = (e) => { e.preventDefault(); releaseFn(); };
-            elem.addEventListener('touchstart', start, { passive: false });
-            elem.addEventListener('touchend', end, { passive: false });
-            elem.addEventListener('mousedown', start);
-            elem.addEventListener('mouseup', end);
-            elem.addEventListener('mouseleave', end);
+            let activeTouchId = null;
+
+            const onStart = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                elem.classList.add('active');
+                if (e.changedTouches && e.changedTouches.length > 0) {
+                    activeTouchId = e.changedTouches[0].identifier;
+                }
+                pressFn();
+            };
+
+            const onEnd = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                elem.classList.remove('active');
+                if (e.changedTouches && activeTouchId !== null) {
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === activeTouchId) {
+                            activeTouchId = null;
+                            releaseFn();
+                            return;
+                        }
+                    }
+                } else {
+                    activeTouchId = null;
+                    releaseFn();
+                }
+            };
+
+            const onCancel = (e) => {
+                elem.classList.remove('active');
+                activeTouchId = null;
+                releaseFn();
+            };
+
+            elem.addEventListener('touchstart', onStart, { passive: false });
+            elem.addEventListener('touchend', onEnd, { passive: false });
+            elem.addEventListener('touchcancel', onCancel, { passive: false });
+
+            // Desktop mouse / pointer fallback
+            elem.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'mouse') {
+                    e.preventDefault();
+                    elem.classList.add('active');
+                    pressFn();
+                }
+            });
+            elem.addEventListener('pointerup', (e) => {
+                if (e.pointerType === 'mouse') {
+                    e.preventDefault();
+                    elem.classList.remove('active');
+                    releaseFn();
+                }
+            });
+            elem.addEventListener('pointerleave', (e) => {
+                if (e.pointerType === 'mouse') {
+                    elem.classList.remove('active');
+                    releaseFn();
+                }
+            });
+
+            // Prevent context menu (magnifying glass/callout on iOS Safari)
+            elem.addEventListener('contextmenu', (e) => e.preventDefault());
         };
 
         bindTouch(btnLeft, () => { this.keys.left = true; }, () => { this.keys.left = false; });
