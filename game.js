@@ -71,6 +71,7 @@ class Game {
             vy: 0,
             facing: 1, // 1 for right, -1 for left
             isGrounded: false,
+            standingPlatform: null,
             animTime: 0,
             hearts: 3,
             maxHearts: 3,
@@ -448,7 +449,18 @@ class Game {
         this.bonesCollectedInLevel = 0;
 
         // Setup Entities
-        this.platforms = this.level.platforms || [];
+        this.platforms = (this.level.platforms || []).map(p => {
+            if (p.type === 'moving') {
+                return {
+                    ...p,
+                    baseX: p.x,
+                    baseY: p.y,
+                    dx: 0,
+                    dy: 0
+                };
+            }
+            return p;
+        });
         this.trampolines = this.level.trampolines || [];
         this.obstacles = this.level.obstacles || [];
         this.items = this.level.items || [];
@@ -543,6 +555,51 @@ class Game {
     }
 
     // ----------------------------------------------------
+    // Moving Platforms
+    // ----------------------------------------------------
+    updateMovingPlatforms(dt) {
+        this.platforms.forEach(p => {
+            if (p.type === 'moving') {
+                if (p.baseX === undefined) p.baseX = p.x;
+                if (p.baseY === undefined) p.baseY = p.y;
+
+                const speed = p.speed || 0.03;
+                const freq = speed * 50; // Smooth oscillation frequency
+                let targetX = p.baseX;
+                let targetY = p.baseY;
+
+                if (p.rangeX) {
+                    targetX = p.baseX + Math.sin(this.gameTime * freq) * p.rangeX;
+                }
+                if (p.rangeY) {
+                    targetY = p.baseY + Math.sin(this.gameTime * freq) * p.rangeY;
+                }
+
+                const dx = targetX - p.x;
+                const dy = targetY - p.y;
+                p.x = targetX;
+                p.y = targetY;
+                p.dx = dx;
+                p.dy = dy;
+
+                // If Emma is standing on this platform, carry her smoothly with it!
+                if (this.player.standingPlatform === p) {
+                    const isOverPlatform = (
+                        this.player.x + this.player.width > p.x &&
+                        this.player.x < p.x + p.width
+                    );
+                    if (isOverPlatform) {
+                        this.player.x += dx;
+                        this.player.y += dy;
+                    } else {
+                        this.player.standingPlatform = null;
+                    }
+                }
+            }
+        });
+    }
+
+    // ----------------------------------------------------
     // Main Update Loop
     // ----------------------------------------------------
     update(dt) {
@@ -550,6 +607,9 @@ class Game {
 
         this.gameTime += dt;
         this.player.animTime += dt;
+
+        // Update Moving Platforms & carry Emma if standing on one
+        this.updateMovingPlatforms(dt);
 
         // Handle Timers
         if (this.player.barkCooldown > 0) this.player.barkCooldown -= dt;
@@ -612,8 +672,13 @@ class Game {
         const canJump = this.player.isGrounded || this.player.coyoteTimer > 0;
         if (this.player.jumpBufferTimer > 0 && (canJump || this.player.canDoubleJump)) {
             if (canJump) {
+                const plat = this.player.standingPlatform;
                 this.player.vy = -11.6;
+                if (plat && plat.dx) {
+                    this.player.vx += plat.dx;
+                }
                 this.player.isGrounded = false;
+                this.player.standingPlatform = null;
                 this.player.coyoteTimer = 0;
                 this.player.jumpBufferTimer = 0;
                 window.sounds.playJump();
@@ -621,6 +686,7 @@ class Game {
                 // High double jump!
                 this.player.vy = -10.2;
                 this.player.canDoubleJump = false;
+                this.player.standingPlatform = null;
                 this.player.jumpBufferTimer = 0;
                 window.sounds.playJump();
                 // Air puff particles
@@ -646,6 +712,7 @@ class Game {
         // Apply Player Vertical Velocity & Platform Collisions
         this.player.y += this.player.vy;
         this.player.isGrounded = false;
+        this.player.standingPlatform = null;
         this.checkVerticalPlatformCollisions();
 
         // Screen boundary clamp
@@ -655,18 +722,6 @@ class Game {
         if (this.player.y > this.baseHeight + 100) {
             this.handlePlayerDamage(true);
         }
-
-        // Update Moving Platforms
-        this.platforms.forEach(p => {
-            if (p.type === 'moving') {
-                if (p.rangeX) {
-                    p.x += Math.sin(this.gameTime * 3) * 1.5;
-                }
-                if (p.rangeY) {
-                    p.y += Math.cos(this.gameTime * 3) * 1.5;
-                }
-            }
-        });
 
         // Trampoline Bounces
         this.trampolines.forEach(t => {
@@ -834,10 +889,10 @@ class Game {
             const isOneWay = (p.type === 'wood' || p.type === 'bench' || p.type === 'awning' || p.type === 'moving');
 
             if (isOneWay) {
-                // Land on top only when falling downwards
+                // Land on top only when falling downwards or standing
                 const prevBottom = this.player.y + this.player.height - this.player.vy;
                 if (this.player.vy >= 0 &&
-                    prevBottom <= p.y + 8 &&
+                    prevBottom <= p.y + 12 &&
                     this.player.y + this.player.height >= p.y &&
                     this.player.x + this.player.width > p.x + 4 &&
                     this.player.x < p.x + p.width - 4) {
@@ -846,6 +901,7 @@ class Game {
                     this.player.isGrounded = true;
                     this.player.canDoubleJump = true;
                     this.player.coyoteTimer = 0.12;
+                    this.player.standingPlatform = p;
                 }
             } else {
                 // Solid block
@@ -858,6 +914,7 @@ class Game {
                         this.player.coyoteTimer = 0.12;
                         this.player.checkpointX = this.player.x;
                         this.player.checkpointY = this.player.y;
+                        this.player.standingPlatform = p;
                     } else if (this.player.vy < 0) {
                         this.player.y = p.y + p.height;
                         this.player.vy = 0;
@@ -980,6 +1037,7 @@ class Game {
         // Damage bounce & invulnerability
         this.player.invulnerable = true;
         this.player.invulnerableTimer = 1.6;
+        this.player.standingPlatform = null;
 
         if (isPitFall) {
             // Respawn at safe checkpoint
@@ -987,9 +1045,11 @@ class Game {
             this.player.y = this.player.checkpointY;
             this.player.vx = 0;
             this.player.vy = 0;
+            this.player.isGrounded = false;
         } else {
             this.player.vy = -6;
             this.player.vx = -this.player.facing * 4;
+            this.player.isGrounded = false;
         }
     }
 
@@ -1279,9 +1339,36 @@ class Game {
                 this.ctx.fillStyle = '#3e2723';
                 this.ctx.fillRect(p.x + 8, p.y + p.height, 6, 18);
                 this.ctx.fillRect(p.x + p.width - 14, p.y + p.height, 6, 18);
-            } else if (p.type === 'wood' || p.type === 'moving') {
+            } else if (p.type === 'moving') {
+                // Moving Agility Island (Level 3)
+                this.ctx.fillStyle = '#ff9800';
+                this.ctx.strokeStyle = '#e65100';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.roundRect(p.x, p.y, p.width, p.height, 4);
+                this.ctx.fill();
+                this.ctx.stroke();
+
+                // Metallic edge caps
+                this.ctx.fillStyle = '#cfd8dc';
+                this.ctx.fillRect(p.x, p.y, 6, p.height);
+                this.ctx.fillRect(p.x + p.width - 6, p.y, 6, p.height);
+
+                // Directional motion indicator
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                this.ctx.font = 'bold 10px sans-serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                const midX = p.x + p.width / 2;
+                const midY = p.y + p.height / 2;
+                if (p.rangeX) {
+                    this.ctx.fillText('◀  ▶', midX, midY);
+                } else if (p.rangeY) {
+                    this.ctx.fillText('▲  ▼', midX, midY);
+                }
+            } else if (p.type === 'wood') {
                 // Floating wooden plank
-                this.ctx.fillStyle = p.type === 'moving' ? '#ff9800' : '#a1887f';
+                this.ctx.fillStyle = '#a1887f';
                 this.ctx.strokeStyle = '#5d4037';
                 this.ctx.lineWidth = 2;
                 this.ctx.beginPath();
