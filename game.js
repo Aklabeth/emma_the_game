@@ -21,6 +21,7 @@ class Game {
 
         // Game Entities
         this.projectiles = [];
+        this.enemyProjectiles = [];
         this.particles = [];
         this.enemies = [];
         this.items = [];
@@ -445,6 +446,7 @@ class Game {
 
         this.player = this.createPlayer();
         this.projectiles = [];
+        this.enemyProjectiles = [];
         this.particles = [];
         this.bonesCollectedInLevel = 0;
 
@@ -468,12 +470,14 @@ class Game {
         this.level.totalBones = this.items.filter(it => it.type === 'bone' || it.type === 'golden_bone').length;
         this.enemies = (this.level.enemies || []).map(e => ({
             ...e,
-            width: e.type === 'cat' ? 32 : (e.type === 'roomba' ? 36 : 28),
-            height: e.type === 'cat' ? 24 : (e.type === 'roomba' ? 18 : 22),
+            baseY: e.y,
+            width: e.type === 'cat' ? 32 : (e.type === 'roomba' ? 36 : (e.type === 'bird' ? 32 : 28)),
+            height: e.type === 'cat' ? 24 : (e.type === 'roomba' ? 18 : (e.type === 'bird' ? 22 : 22)),
             vx: e.speed,
             isStunned: false,
             stunTimer: 0,
-            defeatScale: 1
+            defeatScale: 1,
+            poopCooldown: Math.random() * 2.0 + 1.5
         }));
         this.goal = this.level.goal;
 
@@ -597,6 +601,103 @@ class Game {
                 }
             }
         });
+    }
+
+    // ----------------------------------------------------
+    // Hazard Projectiles (Bird Poop)
+    // ----------------------------------------------------
+    updateEnemyProjectiles(dt) {
+        for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+            const poop = this.enemyProjectiles[i];
+            poop.x += poop.vx;
+            poop.vy += 0.28;
+            poop.y += poop.vy;
+
+            // Check collision with Emma
+            const poopBox = {
+                x: poop.x - poop.width / 2,
+                y: poop.y - poop.height / 2,
+                width: poop.width,
+                height: poop.height
+            };
+
+            if (this.isColliding(this.player, poopBox)) {
+                // Emma doesn't like to be pooped on - loses a heart!
+                this.handlePlayerDamage();
+                if (window.sounds && window.sounds.playSplat) {
+                    window.sounds.playSplat();
+                }
+
+                // Yucky splat particles on Emma
+                for (let k = 0; k < 14; k++) {
+                    this.particles.push({
+                        x: poop.x,
+                        y: poop.y,
+                        vx: (Math.random() - 0.5) * 5,
+                        vy: (Math.random() - 0.5) * 5,
+                        color: Math.random() < 0.6 ? '#ffffff' : (Math.random() < 0.5 ? '#cfd8dc' : '#795548'),
+                        size: Math.random() * 4 + 2,
+                        alpha: 1,
+                        life: 20
+                    });
+                }
+                this.enemyProjectiles.splice(i, 1);
+                continue;
+            }
+
+            // Check collision with ground or platforms
+            let splatted = false;
+            for (const plat of this.platforms) {
+                if (poop.x >= plat.x && poop.x <= plat.x + plat.width &&
+                    poop.y >= plat.y && poop.y <= plat.y + 16 && poop.vy > 0) {
+                    splatted = true;
+                    break;
+                }
+            }
+            if (poop.y > this.baseHeight + 50) {
+                splatted = true;
+            }
+
+            if (splatted) {
+                if (poop.y <= this.baseHeight + 10) {
+                    for (let k = 0; k < 6; k++) {
+                        this.particles.push({
+                            x: poop.x,
+                            y: poop.y,
+                            vx: (Math.random() - 0.5) * 3,
+                            vy: -Math.random() * 2,
+                            color: Math.random() < 0.7 ? '#ffffff' : '#e0e0e0',
+                            size: Math.random() * 3 + 2,
+                            alpha: 0.8,
+                            life: 14
+                        });
+                    }
+                }
+                this.enemyProjectiles.splice(i, 1);
+                continue;
+            }
+
+            // Check if Emma's barks blast the poop away mid-air!
+            for (const bark of this.projectiles) {
+                const dist = Math.hypot(bark.x - poop.x, bark.y - poop.y);
+                if (dist < bark.radius + poop.width / 2) {
+                    for (let k = 0; k < 8; k++) {
+                        this.particles.push({
+                            x: poop.x,
+                            y: poop.y,
+                            vx: (Math.random() - 0.5) * 6,
+                            vy: (Math.random() - 0.5) * 6,
+                            color: '#ffffff',
+                            size: Math.random() * 3 + 2,
+                            alpha: 1,
+                            life: 16
+                        });
+                    }
+                    this.enemyProjectiles.splice(i, 1);
+                    break;
+                }
+            }
+        }
     }
 
     // ----------------------------------------------------
@@ -807,6 +908,31 @@ class Game {
                 e.vx = -Math.abs(e.vx);
             }
 
+            // Bird flying flight path & dropping poop attack
+            if (e.type === 'bird') {
+                if (e.baseY === undefined) e.baseY = e.y;
+                e.y = e.baseY + Math.sin(this.gameTime * 4 + e.x * 0.02) * 8;
+
+                e.poopCooldown -= dt;
+                const distToEmmaX = Math.abs(this.player.x - e.x);
+                if (e.poopCooldown <= 0 && distToEmmaX < 260) {
+                    e.poopCooldown = 3.2 + Math.random() * 2.2;
+
+                    this.enemyProjectiles.push({
+                        x: e.x + (e.vx > 0 ? 6 : e.width - 6),
+                        y: e.y + e.height,
+                        vx: e.vx * 0.4,
+                        vy: 1.2,
+                        width: 12,
+                        height: 14
+                    });
+
+                    if (window.sounds && window.sounds.playBirdChirp && distToEmmaX < 600) {
+                        window.sounds.playBirdChirp();
+                    }
+                }
+            }
+
             // Enemy collision with Emma
             if (this.isColliding(this.player, e)) {
                 if (this.player.isSuper) {
@@ -822,6 +948,9 @@ class Game {
                 }
             }
         }
+
+        // Update Enemy Projectiles (Bird Poop)
+        this.updateEnemyProjectiles(dt);
 
         // Collectibles (Bones, Golden Bones, Sausages)
         for (let i = this.items.length - 1; i >= 0; i--) {
@@ -1005,14 +1134,15 @@ class Game {
         this.score += 50;
         window.sounds.playEnemyPoof();
 
-        // Poof of comic smoke & stars
-        for (let i = 0; i < 10; i++) {
+        // Poof of comic smoke, stars & bird feathers
+        const isBird = enemy.type === 'bird';
+        for (let i = 0; i < 12; i++) {
             this.particles.push({
                 x: enemy.x + enemy.width / 2,
                 y: enemy.y + enemy.height / 2,
-                vx: (Math.random() - 0.5) * 5,
-                vy: (Math.random() - 0.5) * 5,
-                color: Math.random() < 0.5 ? '#ffe600' : '#ffffff',
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                color: isBird ? (Math.random() < 0.6 ? '#eceff1' : '#78909c') : (Math.random() < 0.5 ? '#ffe600' : '#ffffff'),
                 size: Math.random() * 4 + 2,
                 alpha: 1,
                 life: 20
@@ -1196,7 +1326,14 @@ class Game {
                 Sprites.drawSquirrel(this.ctx, e, this.gameTime);
             } else if (e.type === 'roomba') {
                 Sprites.drawRoomba(this.ctx, e, this.gameTime);
+            } else if (e.type === 'bird') {
+                Sprites.drawBird(this.ctx, e, this.gameTime);
             }
+        });
+
+        // Hazard Projectiles (Bird Poop)
+        this.enemyProjectiles.forEach(poop => {
+            Sprites.drawPoop(this.ctx, poop, this.gameTime);
         });
 
         // Projectiles (Barks)

@@ -360,11 +360,15 @@ const Levels = [
 
         enemies: [
             { x: 420, y: 420, type: "cat", minX: 300, maxX: 580, speed: 1.5 },
+            { x: 450, y: 120, type: "bird", minX: 280, maxX: 700, speed: 1.8 },
             { x: 950, y: 420, type: "roomba", minX: 850, maxX: 1200, speed: 2.0 },
+            { x: 1150, y: 110, type: "bird", minX: 960, maxX: 1400, speed: 2.0 },
             { x: 1400, y: 160, type: "squirrel", minX: 1390, maxX: 1490, speed: 1.2 },
             { x: 1700, y: 420, type: "cat", minX: 1600, maxX: 1950, speed: 1.6 },
+            { x: 1900, y: 120, type: "bird", minX: 1700, maxX: 2180, speed: 1.9 },
             { x: 2480, y: 420, type: "roomba", minX: 2350, maxX: 2750, speed: 2.2 },
             { x: 2150, y: 160, type: "squirrel", minX: 2130, maxX: 2230, speed: 1.1 },
+            { x: 2720, y: 115, type: "bird", minX: 2500, maxX: 3000, speed: 2.1 },
             { x: 3450, y: 420, type: "cat", minX: 3350, maxX: 3650, speed: 1.7 },
             { x: 3750, y: 420, type: "roomba", minX: 3650, maxX: 3950, speed: 2.4 }
         ],

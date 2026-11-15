@@ -229,6 +229,59 @@ class SoundManager {
         osc.stop(now + 0.21);
     }
 
+    // --- Bird Chirp / Squawk ---
+    playBirdChirp() {
+        if (this.isMuted) return;
+        this.init();
+        const now = this.ctx.currentTime;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1750, now);
+        osc.frequency.exponentialRampToValueAtTime(2600, now + 0.06);
+        osc.frequency.exponentialRampToValueAtTime(1900, now + 0.12);
+
+        gain.gain.setValueAtTime(0.2 * this.masterVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.15);
+    }
+
+    // --- Bird Poop Splat ---
+    playSplat() {
+        if (this.isMuted) return;
+        this.init();
+        const now = this.ctx.currentTime;
+
+        // Comical wet squish / splat sound
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.13);
+
+        gain.gain.setValueAtTime(0.35 * this.masterVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        const lp = this.ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.setValueAtTime(750, now);
+
+        osc.connect(lp);
+        lp.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.16);
+    }
+
     // --- Player Hurt (Whine) ---
     playHurt() {
         if (this.isMuted) return;

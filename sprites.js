@@ -685,6 +685,134 @@ const Sprites = {
     },
 
     // ----------------------------------------------------
+    // Enemy: Freche Taube / Vogel (Cheeky Bird / Pigeon)
+    // ----------------------------------------------------
+    drawBird(ctx, enemy, time) {
+        ctx.save();
+        ctx.translate(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+        if (enemy.vx < 0) ctx.scale(-1, 1);
+
+        if (enemy.defeatScale !== undefined) {
+            ctx.scale(enemy.defeatScale, enemy.defeatScale);
+        }
+
+        // Animated flight flap cycle
+        const wingFlap = Math.sin(time * 16);
+
+        // Tail feathers
+        ctx.fillStyle = '#607d8b';
+        ctx.beginPath();
+        ctx.moveTo(-10, 0);
+        ctx.lineTo(-20, -4 + wingFlap * 2);
+        ctx.lineTo(-18, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Plump bird body (soft pigeon blue/grey)
+        ctx.fillStyle = '#78909c';
+        ctx.beginPath();
+        ctx.ellipse(-2, 0, 13, 10, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White fluffy chest/belly
+        ctx.fillStyle = '#eceff1';
+        ctx.beginPath();
+        ctx.ellipse(3, 3, 7, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Iridescent teal neck stripe
+        ctx.strokeStyle = '#26a69a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(6, -4, 5, 0.4, 2.2);
+        ctx.stroke();
+
+        // Bird head
+        ctx.fillStyle = '#607d8b';
+        ctx.beginPath();
+        ctx.arc(8, -6, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Beady cartoon eye with gleam
+        ctx.fillStyle = '#ff9800';
+        ctx.beginPath();
+        ctx.arc(10, -8, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(10.5, -8, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(11, -8.8, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cheeky orange beak
+        ctx.fillStyle = '#ff9800';
+        ctx.beginPath();
+        ctx.moveTo(14, -7);
+        ctx.lineTo(21, -5);
+        ctx.lineTo(14, -3);
+        ctx.closePath();
+        ctx.fill();
+
+        // Animated Wing (flapping up and down)
+        ctx.fillStyle = '#455a64';
+        ctx.beginPath();
+        ctx.moveTo(-4, -2);
+        const wingY = -12 + wingFlap * 9;
+        ctx.quadraticCurveTo(0, wingY - 4, -8, wingY);
+        ctx.quadraticCurveTo(-2, 0, -4, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Little orange feet tucked under
+        ctx.fillStyle = '#e65100';
+        ctx.fillRect(-2, 8, 3, 3);
+        ctx.fillRect(3, 8, 3, 3);
+
+        ctx.restore();
+    },
+
+    // ----------------------------------------------------
+    // Hazard: Vogel-Köttel / Bird Poop Drop
+    // ----------------------------------------------------
+    drawPoop(ctx, poop, time) {
+        ctx.save();
+        ctx.translate(poop.x, poop.y);
+
+        // Teardrop shape falling downwards (pointed top, rounded bottom)
+        const angle = Math.atan2(poop.vy || 1, poop.vx || 0.001) - Math.PI / 2;
+        ctx.rotate(angle);
+
+        // White cartoon bird drop with soft shaded core
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(0, -7);
+        ctx.bezierCurveTo(4, -4, 6, 2, 4, 5);
+        ctx.bezierCurveTo(2, 7, -2, 7, -4, 5);
+        ctx.bezierCurveTo(-6, 2, -4, -4, 0, -7);
+        ctx.closePath();
+        ctx.fill();
+
+        // Subtle dark brown spot in center
+        ctx.fillStyle = '#5d4037';
+        ctx.beginPath();
+        ctx.ellipse(0, 3, 2, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White shine
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        ctx.arc(-1.5, 1, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    },
+
+    // ----------------------------------------------------
     // Obstacle: Trampoline / Sprungkissen
     // ----------------------------------------------------
     drawTrampoline(ctx, x, y, width, height, time) {
